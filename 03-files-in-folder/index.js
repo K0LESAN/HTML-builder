@@ -1,36 +1,23 @@
-const fs = require('fs');
+const { readdir, stat } = require('fs/promises');
 const path = require('path');
 
-const fullpath = path.join(__dirname, 'secret-folder');
+async function main() {
+  const fullpath = path.join(__dirname, 'secret-folder');
+  const files = await readdir(fullpath);
 
-function getInfo(pathToFile) {
-  fs.stat(pathToFile, (error, stats) => {
-    if (error) {
-      process.stdin.write(error);
-      return;
-    }
+  for (const file of files) {
+    const pathToFile = path.join(fullpath, file);
+    const stats = await stat(pathToFile);
 
     if (!stats.isFile()) {
-      return;
+      continue;
     }
 
-    const fileInfo = path.parse(pathToFile);
-
-    const fileName = fileInfo.name;
-    const fileExtension = fileInfo.ext.slice(1);
+    const { name, ext } = path.parse(pathToFile);
     const fileSize = (stats.size / 1024).toFixed(3);
 
-    process.stdout.write(`${fileName} - ${fileExtension} - ${fileSize}kb\n`);
-  });
+    process.stdout.write(`${name} - ${ext.slice(1)} - ${fileSize}kb\n`);
+  }
 }
 
-fs.readdir(fullpath, async (error, files) => {
-  if (error) {
-    process.stdin.write(error);
-    return;
-  }
-
-  for await (const file of files) {
-    getInfo(path.join(fullpath, file));
-  }
-});
+main();
