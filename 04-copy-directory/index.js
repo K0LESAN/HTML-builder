@@ -1,62 +1,21 @@
-const fs = require('fs');
+const { rm, mkdir, readdir, copyFile } = require('fs/promises');
 const path = require('path');
 
-const fullpath = path.join(__dirname, 'files');
-const copyPath = path.join(__dirname, 'files-copy');
+async function main() {
+  const fullpath = path.join(__dirname, 'files');
+  const copyPath = path.join(__dirname, 'files-copy');
 
-async function copyDir() {
-  fs.readdir(fullpath, async (error, files) => {
-    if (error) {
-      process.stdout.write(error);
-      return;
-    }
+  await rm(copyPath, { recursive: true, force: true });
+  await mkdir(copyPath);
 
-    for await (const filename of files) {
-      const src = path.join(fullpath, filename);
-      const dest = path.join(copyPath, filename);
+  const files = await readdir(fullpath);
 
-      fs.copyFile(src, dest, (error) => {
-        if (error) {
-          process.stdout.write(error);
-          return;
-        }
-      });
-    }
-  });
+  for (const file of files) {
+    const src = path.join(fullpath, file);
+    const dest = path.join(copyPath, file);
+
+    await copyFile(src, dest);
+  }
 }
 
-fs.readdir(__dirname, (error, files) => {
-  if (error) {
-    process.stdin.write(error);
-    return;
-  }
-
-  if (files.includes('files-copy')) {
-    fs.rm(copyPath, { recursive: true }, (error) => {
-      if (error) {
-        process.stdout.write(error);
-        return;
-      }
-
-      fs.mkdir(copyPath, async (error) => {
-        if (error) {
-          process.stdout.write(error);
-          return;
-        }
-
-        await copyDir();
-      });
-    });
-  }
-
-  if (!files.includes('files-copy')) {
-    fs.mkdir(copyPath, async (error) => {
-      if (error) {
-        process.stdout.write(error);
-        return;
-      }
-
-      await copyDir();
-    });
-  }
-});
+main();
