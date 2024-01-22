@@ -1,50 +1,26 @@
-const fs = require('fs');
+const { readdir, stat, readFile, writeFile } = require('fs/promises');
 const path = require('path');
 
-const styles = path.join(__dirname, 'styles');
-const dist = path.join(__dirname, 'project-dist');
-const bundleCSS = path.join(dist, 'bundle.css');
+async function main() {
+  const styles = path.join(__dirname, 'styles');
+  const dist = path.join(__dirname, 'project-dist');
+  const bundleCSS = path.join(dist, 'bundle.css');
+  const files = await readdir(styles);
 
-const writeStream = fs.createWriteStream(bundleCSS);
+  await writeFile(bundleCSS, '');
 
-writeStream.write('', (error) => {
-  if (error) {
-    process.stdout.write(error);
-    return;
+  for (const file of files) {
+    const pathToStyleFile = path.join(styles, file);
+    const stats = await stat(pathToStyleFile);
+
+    if (!stats.isFile() || path.parse(file).ext !== '.css') {
+      continue;
+    }
+
+    const dataStyle = await readFile(pathToStyleFile, { encoding: 'utf-8' });
+
+    await writeFile(bundleCSS, dataStyle, { flag: 'a' });
   }
+}
 
-  fs.readdir(styles, async (error, files) => {
-    if (error) {
-      process.stdout.write(error);
-      return;
-    }
-
-    for await (const file of files) {
-      const pathToStyleFile = path.join(styles, file);
-
-      fs.stat(pathToStyleFile, (error, stats) => {
-        if (error) {
-          process.stdout.write(error);
-          return;
-        }
-
-        if (!stats.isFile() || path.parse(file).ext !== '.css') {
-          return;
-        }
-
-        const readStream = fs.createReadStream(path.join(styles, file), {
-          encoding: 'utf-8',
-        });
-
-        readStream.on('data', (data) => {
-          writeStream.write(data, (error) => {
-            if (error) {
-              process.stdout.write(error);
-              return;
-            }
-          });
-        });
-      });
-    }
-  });
-});
+main();
